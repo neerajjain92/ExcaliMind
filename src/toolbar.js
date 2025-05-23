@@ -21,6 +21,75 @@ export function selectTool(tool) {
   }
 }
 
+// Setup keyboard shortcuts - call this once from main.js
+export function setupKeyboardShortcuts() {
+  // Remove any existing keyboard listeners to prevent duplicates
+  const existingListener = window.toolbarKeyboardListener;
+  if (existingListener) {
+    document.removeEventListener('keydown', existingListener);
+  }
+
+  // Create new keyboard listener
+  const keyboardListener = (e) => {
+    // Don't trigger shortcuts when typing in inputs or textareas
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.isContentEditable) {
+      return;
+    }
+    
+    // Don't trigger if any modifier keys are pressed
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    }
+    
+    switch (e.key.toLowerCase()) {
+      case 'v':
+        e.preventDefault();
+        selectTool('selection');
+        break;
+      case 'h':
+        e.preventDefault();
+        selectTool('hand');
+        break;
+      case 'r':
+        e.preventDefault();
+        selectTool('rectangle');
+        break;
+      case 'd':
+        e.preventDefault();
+        selectTool('diamond');
+        break;
+      case 'e':
+        e.preventDefault();
+        selectTool('ellipse');
+        break;
+      case 'a':
+        e.preventDefault();
+        selectTool('arrow');
+        break;
+      case 'l':
+        e.preventDefault();
+        selectTool('line');
+        break;
+      case 'p':
+        e.preventDefault();
+        selectTool('freedraw');
+        break;
+      case 't':
+        e.preventDefault();
+        selectTool('text');
+        break;
+      case 'i':
+        e.preventDefault();
+        selectTool('image');
+        break;
+    }
+  };
+
+  // Store reference and add listener
+  window.toolbarKeyboardListener = keyboardListener;
+  document.addEventListener('keydown', keyboardListener);
+}
+
 // Show/hide properties panel
 function togglePropertiesPanel(show) {
   const panel = document.getElementById('properties-panel');
@@ -322,46 +391,6 @@ export function setupToolbar() {
       // TODO: Implement layer controls in canvas.js
       console.log('Layer action:', button.dataset.layer);
     });
-  });
-
-  // Add keyboard shortcuts (keeping existing ones)
-  document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-      return;
-    }
-    
-    switch (e.key.toLowerCase()) {
-      case 'v':
-        selectTool('selection');
-        break;
-      case 'h':
-        selectTool('hand');
-        break;
-      case 'r':
-        selectTool('rectangle');
-        break;
-      case 'd':
-        selectTool('diamond');
-        break;
-      case 'e':
-        selectTool('ellipse');
-        break;
-      case 'a':
-        selectTool('arrow');
-        break;
-      case 'l':
-        selectTool('line');
-        break;
-      case 'p':
-        selectTool('freedraw');
-        break;
-      case 't':
-        selectTool('text');
-        break;
-      case 'i':
-        selectTool('image');
-        break;
-    }
   });
 }
 

@@ -1,6 +1,6 @@
 import './style.css';
 import { initCanvas } from './canvas.js';
-import { setupToolbar } from './toolbar.js';
+import { setupToolbar, setupKeyboardShortcuts } from './toolbar.js';
 import { setupJsonEditor } from './jsonEditor.js';
 import { setupChat } from './chat.js';
 
@@ -110,6 +110,7 @@ document.querySelector('#app').innerHTML = `
 // Initialize components
 document.addEventListener('DOMContentLoaded', () => {
   setupToolbar();
+  setupKeyboardShortcuts(); // Setup keyboard shortcuts once
   setupJsonEditor();
   setupChat();
   // Initialize canvas after DOM is fully loaded
