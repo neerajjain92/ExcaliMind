@@ -128,6 +128,25 @@ export function regenerateElementDrawable(element, roughGenerator) {
         );
       }
       break;
+    case 'group':
+      // For a group, its visual representation could be a simple bounding box rectangle
+      // with a distinct style (e.g., dashed line) to indicate it's a group.
+      element.cachedDrawable = roughGenerator.rectangle(
+        0, // x is relative to the group's x, so 0 for the drawable
+        0, // y is relative to the group's y, so 0 for the drawable
+        element.width,
+        element.height,
+        {
+          stroke: element.strokeColor || '#888888', // Default or specific group stroke color
+          strokeWidth: element.strokeWidth || 1,
+          roughness: 0, // Groups usually have a non-rough appearance for the bounding box
+          strokeLineDash: [5, 5] // Dashed line for group bounding box
+        }
+      );
+      // Optionally, regenerate drawables for all children if needed,
+      // but children's drawables are typically handled when they are created/modified.
+      // For simplicity, we assume children's drawables are up-to-date.
+      break;
   }
 }
 
@@ -301,6 +320,23 @@ export function createElement(id, x1, y1, x2, y2, type, options = {}, roughGener
         seed: Math.floor(Math.random() * 2000000000)
       };
       break;
+
+    case 'group':
+      element = {
+        id,
+        type,
+        x: x1, // Bounding box x
+        y: y1, // Bounding box y
+        width: x2 - x1, // Bounding box width
+        height: y2 - y1, // Bounding box height
+        children: options.children || [], // Children elements, coordinates will be relative
+        strokeColor: options.strokeColor || '#888888', // Optional: specific style for group bounds
+        strokeWidth: options.strokeWidth || 1,
+        opacity: options.opacity || 100,
+        seed: Math.floor(Math.random() * 2000000000),
+        // fillStyle, backgroundColor can be omitted or set to transparent for groups
+      };
+      break;
       
     default:
       throw new Error(`Type not recognized: ${type}`);
@@ -356,6 +392,36 @@ export function drawElement(roughCanvas, context, element, isSelected = false, r
   context.globalAlpha = element.opacity / 100;
   
   switch (element.type) {
+    case 'group':
+      // 1. Draw the group's own bounding box (if any)
+      // The group's cachedDrawable is created with x=0, y=0 relative to its own position
+      if (element.cachedDrawable) {
+        context.save();
+        // Translate context to the group's position to draw its bounding box
+        // The cachedDrawable for the group is defined at (0,0) relative to group's (x,y)
+        context.translate(element.x, element.y); 
+        roughCanvas.draw(element.cachedDrawable);
+        context.restore(); // Restore context before drawing children or other elements
+      }
+
+      // 2. Save context, translate to group's origin for children
+      context.save();
+      context.translate(element.x, element.y);
+
+      // 3. For each child in group.children: Call drawElement
+      // Children's coordinates are relative to the group's origin.
+      // Their cachedDrawables were created using these relative coordinates.
+      element.children.forEach(child => {
+        // Pass roughCanvas and context, but importantly, child's own properties.
+        // isSelected for children is false, as the group is the selected entity.
+        // The roughGenerator is passed down.
+        drawElement(roughCanvas, context, child, false, roughGenerator);
+      });
+
+      // 4. Restore context
+      context.restore();
+      break;
+
     case 'rectangle':
       // Use cached drawable if available, otherwise generate it
       if (element.cachedDrawable) {
@@ -593,6 +659,90 @@ export function drawElement(roughCanvas, context, element, isSelected = false, r
     context.setLineDash([]);
   }
 }
+
+export function groupElements(elementsToGroup, roughGenerator, nextIdFn) {
+  if (!elementsToGroup || elementsToGroup.length === 0) {
+    return null;
+  }
+
+  // 1. Calculate Bounding Box
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  elementsToGroup.forEach(el => {
+    minX = Math.min(minX, el.x);
+    minY = Math.min(minY, el.y);
+    maxX = Math.max(maxX, el.x + (el.width || 0)); // el.width can be undefined for point-like elements
+    maxY = Math.max(maxY, el.y + (el.height || 0)); // el.height can be undefined
+  });
+
+  const groupX = minX;
+  const groupY = minY;
+  const groupWidth = maxX - minX;
+  const groupHeight = maxY - minY;
+
+  // 2. Create Group Element
+  const groupElement = createElement(
+    nextIdFn(), // Use a function to get the next available ID
+    groupX,
+    groupY,
+    groupX + groupWidth, // x2 for createElement
+    groupY + groupHeight, // y2 for createElement
+    'group',
+    { children: [] }, // Initialize with empty children, will be populated next
+    roughGenerator
+  );
+
+  // 3. Store Children (cloned and with relative coordinates)
+  groupElement.children = elementsToGroup.map(el => {
+    // Deep clone the element to avoid modifying the original
+    const childClone = JSON.parse(JSON.stringify(el));
+    
+    // Adjust coordinates to be relative to the group
+    childClone.x = el.x - groupX;
+    childClone.y = el.y - groupY;
+
+    // Crucially, regenerate the drawable for the child with its new relative coordinates
+    // if its drawing depends on its x,y (e.g. rectangles, ellipses are drawn at their x,y).
+    // For path-based elements (line, arrow, freedraw), their points are already relative to their x,y,
+    // so only x,y needs to be relative.
+    // However, to be safe and ensure all rendering uses the correct coordinates for caching:
+    regenerateElementDrawable(childClone, roughGenerator); // This ensures cachedDrawable uses relative x,y
+
+    return childClone;
+  });
+
+  // 4. Regenerate drawable for the group itself (e.g., its bounding box)
+  regenerateElementDrawable(groupElement, roughGenerator);
+
+  return groupElement;
+}
+
+export function ungroupElements(groupElement, roughGenerator) {
+  if (!groupElement || groupElement.type !== 'group' || !groupElement.children) {
+    return [];
+  }
+
+  // Extract Children and restore absolute coordinates
+  const restoredChildren = groupElement.children.map(child => {
+    // Deep clone the child
+    const restoredChild = JSON.parse(JSON.stringify(child));
+    
+    // Adjust coordinates to be absolute
+    restoredChild.x = groupElement.x + child.x;
+    restoredChild.y = groupElement.y + child.y;
+
+    // Regenerate drawable with absolute coordinates
+    regenerateElementDrawable(restoredChild, roughGenerator);
+    
+    return restoredChild;
+  });
+
+  return restoredChildren;
+}
+
 
 function getFontFamily(fontFamily) {
   switch (fontFamily) {

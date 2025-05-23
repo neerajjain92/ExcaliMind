@@ -1,4 +1,4 @@
-import { setTool, setStrokeColor, setFillColor, setStrokeWidth } from './canvas.js';
+import { setTool, setStrokeColor, setFillColor, setStrokeWidth, groupSelectedElements, ungroupSelectedElement } from './canvas.js'; // Adjusted path, assuming canvas.js is in the same dir or one level up.
 
 // Export selectTool as a standalone function
 export function selectTool(tool) {
@@ -148,6 +148,29 @@ export function setupToolbar() {
         </button>
         <button class="tool-btn" data-tool="eraser" title="Eraser">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+        </button>
+
+        <div class="tool-separator"></div>
+        
+        <button id="group-btn" class="tool-btn" title="Group Selected (Ctrl+G)" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="8" height="8" stroke="currentColor" fill="none" stroke-width="1.5"/>
+            <rect x="13" y="13" width="8" height="8" stroke="currentColor" fill="none" stroke-width="1.5"/>
+            <line x1="7" y1="11" x2="7" y2="13" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="11" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="17" y1="11" x2="17" y2="13" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="11" y1="17" x2="13" y2="17" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+        <button id="ungroup-btn" class="tool-btn" title="Ungroup Selected (Ctrl+Shift+G)" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="8" height="8" stroke="currentColor" fill="none" stroke-dasharray="2,2" stroke-width="1.5"/>
+            <rect x="13" y="13" width="8" height="8" stroke="currentColor" fill="none" stroke-dasharray="2,2" stroke-width="1.5"/>
+            <line x1="7" y1="11" x2="7" y2="13" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.5"/>
+            <line x1="11" y1="7" x2="13" y2="7" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.5"/>
+            <line x1="17" y1="11" x2="17" y2="13" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.5"/>
+            <line x1="11" y1="17" x2="13" y2="17" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.5"/>
+          </svg>
         </button>
       </div>
 
@@ -392,5 +415,48 @@ export function setupToolbar() {
       console.log('Layer action:', button.dataset.layer);
     });
   });
+
+  // Group/Ungroup buttons
+  const groupButton = document.getElementById('group-btn');
+  const ungroupButton = document.getElementById('ungroup-btn');
+
+  groupButton.addEventListener('click', () => {
+    if (!groupButton.disabled) {
+      groupSelectedElements(); 
+    }
+  });
+
+  ungroupButton.addEventListener('click', () => {
+    if (!ungroupButton.disabled) {
+      ungroupSelectedElement();
+    }
+  });
+  
+  // Initial state for group/ungroup buttons
+  updateGroupUngroupButtonStates([]);
+}
+
+// This function will be called from canvas.js when selection changes
+export function updateGroupUngroupButtonStates(selectedElements) {
+  const groupButton = document.getElementById('group-btn');
+  const ungroupButton = document.getElementById('ungroup-btn');
+
+  if (!groupButton || !ungroupButton) return; // Buttons not yet initialized
+
+  // Logic for groupButton
+  // Enable if 2 or more elements are selected
+  if (selectedElements && selectedElements.length > 1) {
+    groupButton.disabled = false;
+  } else {
+    groupButton.disabled = true;
+  }
+
+  // Logic for ungroupButton
+  // Enable if exactly one element is selected and that element is a group
+  if (selectedElements && selectedElements.length === 1 && selectedElements[0].type === 'group') {
+    ungroupButton.disabled = false;
+  } else {
+    ungroupButton.disabled = true;
+  }
 }
 
