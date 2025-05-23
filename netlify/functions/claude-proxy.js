@@ -21,11 +21,11 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // Health check endpoint - useful for debugging the function
 app.get('/api/health', (req, res) => {
-  console.log('Netlify Function Info: /api/health route hit'); // Update this log
+  console.log('Netlify Function Info: /api/health route hit');
   res.json({ 
     status: 'OK', 
     message: 'Claude API Proxy Netlify Function is running',
-    apiKeyStatus: process.env.CLAUDE_API_KEY ? 'CLAUDE_API_KEY is SET' : 'CLAUDE_API_KEY is NOT SET (This is an issue!)'
+    note: 'Users provide their own Claude API keys via x-claude-api-key header'
   });
 });
 
@@ -34,24 +34,18 @@ app.get('/api/health', (req, res) => {
 // With the netlify.toml rewrite from /api/* to /.netlify/functions/claude-proxy/:splat
 // a request to /api/claude/chat on your site will be routed to /api/claude/chat here.
 app.post('/api/claude/chat', async (req, res) => {
-  console.log('Netlify Function Info: /api/claude/chat route hit'); // Update this log
+  console.log('Netlify Function Info: /api/claude/chat route hit');
   try {
-    console.log('Netlify Function: Received request to /api/claude/chat'); // Update this log
+    console.log('Netlify Function: Received request to /api/claude/chat');
     
-    const apiKey = process.env.CLAUDE_API_KEY; // API key from Netlify environment variable
+    // Get API key from request headers (user provides their own)
+    const apiKey = req.headers['x-claude-api-key'];
     
     if (!apiKey) {
-      console.error('Netlify Function: CLAUDE_API_KEY is not set in environment variables.');
-      return res.status(500).json({ 
-        error: 'API key not configured on server. Administrator needs to set CLAUDE_API_KEY environment variable.' 
+      return res.status(400).json({ 
+        error: 'Missing API key. Please provide x-claude-api-key header.' 
       });
     }
-
-    // The frontend will send 'x-claude-api-key' if it's using the local mode,
-    // but for Netlify deployment, the key is on the server (this function).
-    // So we don't strictly need to check req.headers['x-claude-api-key'] here,
-    // as this function itself will use the CLAUDE_API_KEY from env vars.
-    // However, if you want to allow overriding for some reason, you could add logic for it.
 
     const { messages, system, model = 'claude-3-sonnet-20240229', max_tokens = 4000 } = req.body;
 
@@ -67,7 +61,7 @@ app.post('/api/claude/chat', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey, // Use the API key from environment variable
+        'x-api-key': apiKey, // Use the API key from request header
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
