@@ -1,13 +1,13 @@
-# 🎨 Excalidraw JSON Editor with Claude AI
+# 🧠 ExcaliMind: The Intelligent Excalidraw Editor
 
-A powerful, interactive Excalidraw editor with real-time JSON editing and AI assistance powered by Claude AI.
+**ExcaliMind is an advanced Excalidraw editor supercharged with AI capabilities, powered by Claude. It seamlessly integrates with GitHub for file hosting and version control, allowing you to edit, store, and version your diagrams, and use a real-time AI assistant to modify and enhance your creations through natural language.**
 
 ## ✨ Features
 
 🎨 **Full Excalidraw Editor** - Complete drawing tools with professional UI  
 📝 **Live JSON Editing** - Real-time sync between canvas and JSON  
 🔗 **GitHub Integration** - Load diagrams directly from GitHub URLs  
-🤖 **Claude AI Assistant** - Intelligent diagram modification and creation  
+🤖 **ExcaliMind AI Assistant (powered by Claude)** - Intelligent diagram modification and creation  
 ⚡ **High Performance** - Optimized rendering with caching  
 🎛️ **Properties Panel** - Comprehensive shape customization  
 📱 **Responsive Design** - Works beautifully on all screen sizes  
@@ -200,7 +200,7 @@ MIT License - see LICENSE file for details
 This isn't just another drawing tool - it's a complete diagramming solution with AI superpowers:
 
 ✨ **Professional Grade** - Matches excalidraw.com in look and feel  
-🧠 **AI-Powered** - Claude understands your diagrams and can modify them intelligently  
+🧠 **ExcaliMind AI (Claude Engine)** - Understands your diagrams and can modify them intelligently  
 🔄 **Live Sync** - Perfect harmony between visual editing and JSON manipulation  
 ⚡ **Blazing Fast** - Optimized rendering handles complex diagrams smoothly  
 🛠️ **Developer Friendly** - Clean, modular codebase with comprehensive documentation  
@@ -209,4 +209,4 @@ Perfect for architects, developers, designers, and anyone who wants to create be
 
 ---
 
-**Made with ❤️ and Claude AI** 
+**ExcaliMind - Diagramming evolved with Excalidraw, GitHub, and Claude AI** 
