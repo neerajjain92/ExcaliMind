@@ -1,8 +1,8 @@
 import rough from 'roughjs';
 import { getStroke } from 'perfect-freehand';
-import { createElement, updateElement, drawElement, regenerateElementDrawable } from './elements.js';
+import { createElement, updateElement, drawElement, regenerateElementDrawable, updateConnectedArrows, findElementAt, getNearestConnectionPoint, getConnectionPoint, createGroup, ungroup, getElementGroup, getGroupElements, isInGroup } from './elements.js';
 import { updateJsonEditor } from './jsonEditor.js';
-import { selectTool } from './toolbar.js';
+import { selectTool, updateGroupingUI, updateGroupingUIWithSelection } from './toolbar.js';
 
 // Canvas state
 let canvas;
@@ -13,6 +13,8 @@ let elements = [];
 let action = 'none';
 let selectedElement = null;
 let selectedElementIndex = -1;
+let selectedElements = []; // Array of selected elements for multi-selection
+let selectedElementIndices = []; // Array of selected element indices
 let startX = 0;
 let startY = 0;
 let currentX = 0;
@@ -26,9 +28,6 @@ let strokeColor = '#1e1e1e';
 let fillColor = 'transparent';
 let fillStyle = 'hachure'; // Add fillStyle property
 let strokeWidth = 2;
-
-// Throttle mechanism for mouse move
-let animationFrameId = null;
 
 // Offscreen canvas for caching static elements
 let offscreenCanvas;
@@ -113,31 +112,85 @@ function handleMouseDown(e) {
   
   if (tool === 'selection') {
     const hitResult = getElementAtPosition(startX, startY); // Expects { index, position, handle } or null
+    const isShiftPressed = e.shiftKey;
 
     if (hitResult) {
       // An element or its handle was hit.
-      // Update selectedElement and selectedElementIndex to the hit element.
-      const wasSelected = selectedElementIndex === hitResult.index;
-      selectedElementIndex = hitResult.index;
-      selectedElement = elements[selectedElementIndex]; // Ensures selectedElement is the reference.
       
-      if (!wasSelected) {
-        needsStaticRedraw = true; // Selection changed
-      }
+      if (isShiftPressed) {
+        // Multi-selection with Shift+click
+        const elementIndex = hitResult.index;
+        const isAlreadySelected = selectedElementIndices.includes(elementIndex);
+        
+        if (isAlreadySelected) {
+          // Remove from selection
+          selectedElementIndices = selectedElementIndices.filter(idx => idx !== elementIndex);
+          selectedElements = selectedElements.filter(el => el !== elements[elementIndex]);
+        } else {
+          // Add to selection
+          selectedElementIndices.push(elementIndex);
+          selectedElements.push(elements[elementIndex]);
+        }
+        
+        // Update single selection for compatibility
+        if (selectedElementIndices.length === 1) {
+          selectedElementIndex = selectedElementIndices[0];
+          selectedElement = selectedElements[0];
+        } else if (selectedElementIndices.length === 0) {
+          selectedElementIndex = -1;
+          selectedElement = null;
+        } else {
+          // Multiple selection - clear single selection
+          selectedElementIndex = -1;
+          selectedElement = null;
+        }
+        
+        needsStaticRedraw = true;
+      } else {
+        // Single selection (normal click)
+        const clickedElement = elements[hitResult.index];
+        
+        // Check if clicked element is in a group
+        if (clickedElement.groupId && !isShiftPressed) {
+          // Select the entire group
+          selectGroup(clickedElement.id);
+          needsStaticRedraw = true;
+        } else {
+          // Normal single selection
+          const wasSelected = selectedElementIndices.includes(hitResult.index);
+          
+          // Clear previous selection
+          selectedElementIndices = [hitResult.index];
+          selectedElements = [elements[hitResult.index]];
+          selectedElementIndex = hitResult.index;
+          selectedElement = elements[selectedElementIndex];
+          
+          if (!wasSelected) {
+            needsStaticRedraw = true; // Selection changed
+          }
+        }
 
-      if (hitResult.position === 'inside') {
-        action = 'moving';
-      } else if (hitResult.position === 'handle') {
-        action = 'resizing';
-        // currentResizeHandle = hitResult.handle; // Optional: store for detailed resize logic
+        if (hitResult.position === 'inside') {
+          action = 'moving';
+        } else if (hitResult.position === 'handle') {
+          action = 'resizing';
+        }
       }
     } else {
-      // Clicked on empty canvas, so deselect.
-      if (selectedElement !== null || selectedElementIndex !== -1) {
-        needsStaticRedraw = true; // Selection cleared
+      // Clicked on empty canvas
+      if (!isShiftPressed) {
+        // Clear selection if not holding Shift
+        if (selectedElements.length > 0) {
+          needsStaticRedraw = true; // Selection cleared
+        }
+        selectedElement = null;
+        selectedElementIndex = -1;
+        selectedElements = [];
+        selectedElementIndices = [];
+        
+        // Start rectangle selection
+        action = 'selecting';
       }
-      selectedElement = null;
-      selectedElementIndex = -1;
     }
   } else if (tool === 'pan' || tool === 'hand') {
     action = 'panning';
@@ -152,12 +205,34 @@ function handleMouseDown(e) {
       // After removing an element, no element should be selected
       selectedElement = null;
       selectedElementIndex = -1;
+      selectedElements = [];
+      selectedElementIndices = [];
       needsStaticRedraw = true;
       updateJsonEditor(elements);
     }
   } else {
     isDrawing = true;
-    const id = elements.length;
+    const id = `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Check for potential connection at start point for arrows/lines
+    let startBinding = null;
+    if (tool === 'arrow' || tool === 'line') {
+      const targetElement = findElementAt({ x: startX, y: startY }, elements);
+      if (targetElement) {
+        const connectionPoint = getNearestConnectionPoint(targetElement, { x: startX, y: startY });
+        startX = connectionPoint.x;
+        startY = connectionPoint.y;
+        
+        // Calculate focus (0-1 position on perimeter)
+        const focus = 0.5; // Simplified - you could calculate exact focus
+        startBinding = {
+          elementId: targetElement.id,
+          focus: focus,
+          gap: 8
+        };
+      }
+    }
+    
     const newElement = createElement(id, startX, startY, startX, startY, tool, { 
       strokeColor, 
       fillColor, 
@@ -165,9 +240,16 @@ function handleMouseDown(e) {
       strokeWidth 
     }, roughGenerator);
     
+    // Add start binding if we found one
+    if (startBinding && (tool === 'arrow' || tool === 'line')) {
+      newElement.startBinding = startBinding;
+    }
+    
     elements.push(newElement);
     selectedElement = newElement;
     selectedElementIndex = elements.length - 1;
+    selectedElements = [newElement];
+    selectedElementIndices = [elements.length - 1];
     action = 'drawing';
   }
   
@@ -178,36 +260,43 @@ function handleMouseMove(e) {
   currentX = (e.offsetX - panOffset.x) / scale;
   currentY = (e.offsetY - panOffset.y) / scale;
   
-  // Cancel any pending animation frame
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-  }
-  
-  // Throttle rendering using requestAnimationFrame
-  animationFrameId = requestAnimationFrame(() => {
-    if (action === 'drawing') {
-      updateElement(selectedElementIndex, elements, currentX, currentY, roughGenerator);
-    } else if (action === 'moving') {
-      const dx = currentX - startX;
-      const dy = currentY - startY;
-      
-      selectedElement.x += dx;
-      selectedElement.y += dy;
-      
-      if (selectedElement.type === 'arrow' || selectedElement.type === 'line') {
-        selectedElement.points.forEach(point => {
-          point[0] += dx;
-          point[1] += dy;
-        });
-      }
-      
-      // Regenerate drawable after moving
-      regenerateElementDrawable(selectedElement, roughGenerator);
+  // Direct, immediate updates for smooth dragging - no throttling
+  if (action === 'drawing') {
+    updateElement(selectedElementIndex, elements, currentX, currentY, roughGenerator);
+    render();
+  } else if (action === 'selecting') {
+    // Rectangle selection - just mark for redraw, actual selection happens in render()
+    needsStaticRedraw = true;
+    render();
+  } else if (action === 'moving') {
+    const dx = currentX - startX;
+    const dy = currentY - startY;
+    
+    // Only update if there's actual movement to avoid unnecessary redraws
+    if (dx !== 0 || dy !== 0) {
+      // Move all selected elements
+      selectedElements.forEach(element => {
+        element.x += dx;
+        element.y += dy;
+        
+        if (element.type === 'arrow' || element.type === 'line') {
+          element.points.forEach(point => {
+            point[0] += dx;
+            point[1] += dy;
+          });
+        }
+      });
       
       startX = currentX;
       startY = currentY;
-    } else if (action === 'resizing') {
-      // Implement resizing logic
+      
+      // Immediate lightweight render for smooth visual feedback
+      needsStaticRedraw = true;
+      render();
+    }
+  } else if (action === 'resizing') {
+    // Only allow resizing for single selection
+    if (selectedElement) {
       const width = currentX - selectedElement.x;
       const height = currentY - selectedElement.y;
       
@@ -222,52 +311,78 @@ function handleMouseMove(e) {
       
       // Regenerate drawable after resizing
       regenerateElementDrawable(selectedElement, roughGenerator);
-    } else if (action === 'panning') {
-      const dx = e.offsetX - lastPanPoint.x;
-      const dy = e.offsetY - lastPanPoint.y;
-      
-      panOffset.x += dx;
-      panOffset.y += dy;
-      
-      lastPanPoint = { x: e.offsetX, y: e.offsetY };
-      
-      // Mark static elements for redraw since view transform changed
-      needsStaticRedraw = true;
-    } else if (action === 'erasing') {
-      const hitResult = getElementAtPosition(currentX, currentY);
-      if (hitResult) {
-        const elementToDelete = elements[hitResult.index];
-        elements = elements.filter(el => el.id !== elementToDelete.id);
-        // After removing an element, no element should be selected
-        selectedElement = null; 
-        selectedElementIndex = -1;
-        needsStaticRedraw = true;
-        updateJsonEditor(elements);
-      }
-    } else if (tool === 'selection') {
-      const hitResult = getElementAtPosition(currentX, currentY);
-      canvas.style.cursor = hitResult ? 'move' : 'default';
+      render();
     }
+  } else if (action === 'panning') {
+    const dx = e.offsetX - lastPanPoint.x;
+    const dy = e.offsetY - lastPanPoint.y;
     
+    panOffset.x += dx;
+    panOffset.y += dy;
+    
+    lastPanPoint = { x: e.offsetX, y: e.offsetY };
+    
+    // Mark static elements for redraw since view transform changed
+    needsStaticRedraw = true;
     render();
-  });
+  } else if (action === 'erasing') {
+    const hitResult = getElementAtPosition(currentX, currentY);
+    if (hitResult) {
+      const elementToDelete = elements[hitResult.index];
+      elements = elements.filter(el => el.id !== elementToDelete.id);
+      // After removing an element, no element should be selected
+      selectedElement = null; 
+      selectedElementIndex = -1;
+      selectedElements = [];
+      selectedElementIndices = [];
+      needsStaticRedraw = true;
+      updateJsonEditor(elements);
+      render();
+    }
+  } else if (tool === 'selection') {
+    const hitResult = getElementAtPosition(currentX, currentY);
+    canvas.style.cursor = hitResult ? 'move' : 'default';
+  }
 }
 
 function handleMouseUp() {
-  // Cancel any pending animation frame
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  
   if (action === 'drawing') {
     // Update element dimensions before the check
     if (selectedElement) {
       updateElement(selectedElementIndex, elements, currentX, currentY, roughGenerator);
+      
+      // Check for potential end connection for arrows/lines
+      if ((selectedElement.type === 'arrow' || selectedElement.type === 'line') && 
+          selectedElement.points && selectedElement.points.length > 1) {
+        const endPoint = {
+          x: selectedElement.x + selectedElement.points[selectedElement.points.length - 1][0],
+          y: selectedElement.y + selectedElement.points[selectedElement.points.length - 1][1]
+        };
+        
+        const targetElement = findElementAt(endPoint, elements.filter(el => el !== selectedElement));
+        if (targetElement) {
+          const connectionPoint = getNearestConnectionPoint(targetElement, endPoint);
+          
+          // Update end point to connection point
+          selectedElement.points[selectedElement.points.length - 1] = [
+            connectionPoint.x - selectedElement.x,
+            connectionPoint.y - selectedElement.y
+          ];
+          
+          // Add end binding
+          selectedElement.endBinding = {
+            elementId: targetElement.id,
+            focus: 0.5, // Simplified focus calculation
+            gap: 8
+          };
+          
+          // Regenerate drawable with new end point
+          regenerateElementDrawable(selectedElement, roughGenerator);
+        }
+      }
     }
 
     isDrawing = false;
-    // action = 'none'; // Keep action as 'drawing' for the check below, then set to 'none'
     
     // Remove elements with no dimensions (click without drag)
     if (selectedElement && selectedElement.type !== 'text' && 
@@ -281,6 +396,8 @@ function handleMouseUp() {
       elements.pop();
       selectedElement = null;
       selectedElementIndex = -1;
+      selectedElements = [];
+      selectedElementIndices = [];
     } else if (selectedElement) {
       // Switch back to selection tool after placing a shape
       // Only switch if it was a drawing action and not a text element (text tool handles its own state)
@@ -288,14 +405,58 @@ function handleMouseUp() {
         selectTool('selection');
       }
     }
+  } else if (action === 'selecting') {
+    // Complete rectangle selection
+    const selectionRect = {
+      x: Math.min(startX, currentX),
+      y: Math.min(startY, currentY),
+      width: Math.abs(currentX - startX),
+      height: Math.abs(currentY - startY)
+    };
+    
+    // Find elements within selection rectangle
+    const newSelectedIndices = [];
+    const newSelectedElements = [];
+    
+    elements.forEach((element, index) => {
+      if (isElementInRect(element, selectionRect)) {
+        newSelectedIndices.push(index);
+        newSelectedElements.push(element);
+      }
+    });
+    
+    // Update selection
+    selectedElementIndices = newSelectedIndices;
+    selectedElements = newSelectedElements;
+    
+    // Update single selection for compatibility
+    if (selectedElementIndices.length === 1) {
+      selectedElementIndex = selectedElementIndices[0];
+      selectedElement = selectedElements[0];
+    } else {
+      selectedElementIndex = -1;
+      selectedElement = null;
+    }
+    
+    needsStaticRedraw = true;
+  } else if (action === 'moving') {
+    // NOW do the expensive operations after smooth dragging is complete
+    
+    // Regenerate drawables for all moved elements
+    selectedElements.forEach(element => {
+      regenerateElementDrawable(element, roughGenerator);
+      
+      // Update connected arrows if this element has connections
+      if (element.type !== 'arrow' && element.type !== 'line') {
+        updateConnectedArrows(element, elements, roughGenerator);
+      }
+    });
   } else if (action === 'panning') {
     canvas.style.cursor = tool === 'pan' || tool === 'hand' ? 'grab' : 'default';
   }
   
-  action = 'none'; // Set action to none after all checks
-  if (selectedElement || selectedElementIndex !== -1) {
-    needsStaticRedraw = true; // Mark for redraw when selection changes
-  }
+  action = 'none';
+  needsStaticRedraw = true;
   updateJsonEditor(elements);
   render();
 }
@@ -518,10 +679,73 @@ function isPointInHandle(x, y, handle) {
          y <= handle.y + handleSize / 2;
 }
 
+function isElementInRect(element, rect) {
+  // Check if element overlaps with selection rectangle
+  const elementBounds = getElementBounds(element);
+  
+  return !(elementBounds.x > rect.x + rect.width || 
+           elementBounds.x + elementBounds.width < rect.x ||
+           elementBounds.y > rect.y + rect.height ||
+           elementBounds.y + elementBounds.height < rect.y);
+}
+
+function getElementBounds(element) {
+  if (element.type === 'rectangle' || element.type === 'ellipse' || element.type === 'diamond' || 
+      element.type === 'text' || element.type === 'image' || element.type === 'frame') {
+    return {
+      x: Math.min(element.x, element.x + element.width),
+      y: Math.min(element.y, element.y + element.height),
+      width: Math.abs(element.width),
+      height: Math.abs(element.height)
+    };
+  } else if (element.type === 'arrow' || element.type === 'line') {
+    // Calculate bounding box from points
+    let minX = element.x;
+    let minY = element.y;
+    let maxX = element.x;
+    let maxY = element.y;
+    
+    element.points.forEach(point => {
+      minX = Math.min(minX, element.x + point[0]);
+      minY = Math.min(minY, element.y + point[1]);
+      maxX = Math.max(maxX, element.x + point[0]);
+      maxY = Math.max(maxY, element.y + point[1]);
+    });
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  } else if (element.type === 'freedraw') {
+    // Calculate bounding box from points
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    
+    element.points.forEach(point => {
+      minX = Math.min(minX, element.x + point[0]);
+      minY = Math.min(minY, element.y + point[1]);
+      maxX = Math.max(maxX, element.x + point[0]);
+      maxY = Math.max(maxY, element.y + point[1]);
+    });
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  }
+  
+  return { x: element.x, y: element.y, width: 0, height: 0 };
+}
+
 function render() {
   // Safety check to ensure we have the necessary objects
   if (!ctx || !roughCanvas || !roughGenerator) {
-    console.error('Canvas rendering context or RoughJS not initialized');
     return;
   }
 
@@ -537,12 +761,12 @@ function render() {
     offscreenCtx.translate(panOffset.x, panOffset.y);
     offscreenCtx.scale(scale, scale);
     
-    // Draw grid to offscreen canvas
-    drawGridToContext(offscreenCtx);
+    // Clean canvas background - no grid for Excalidraw-like experience
+    // drawGridToContext(offscreenCtx); // Removed for clean white background
     
     // Draw all non-selected elements to offscreen canvas
     elements.forEach((element, index) => {
-      if (index !== selectedElementIndex) {
+      if (!selectedElementIndices.includes(index)) {
         drawElement(roughOffscreenCanvas, offscreenCtx, element, false, roughGenerator);
       }
     });
@@ -554,15 +778,25 @@ function render() {
   // Copy static elements from offscreen canvas to main canvas
   ctx.drawImage(offscreenCanvas, 0, 0);
   
-  // Apply transform to main canvas for drawing selected element and handles
+  // Apply transform to main canvas for drawing selected elements and handles
   ctx.save();
   ctx.translate(panOffset.x, panOffset.y);
   ctx.scale(scale, scale);
   
-  // Draw selected element on top
-  if (selectedElement && selectedElementIndex !== -1) {
-    drawElement(roughCanvas, ctx, selectedElement, true, roughGenerator);
-    drawResizeHandles(selectedElement);
+  // Draw all selected elements on top
+  selectedElements.forEach((element, index) => {
+    const isLastSelected = index === selectedElements.length - 1;
+    drawElement(roughCanvas, ctx, element, true, roughGenerator);
+    
+    // Only draw resize handles for single selection
+    if (selectedElements.length === 1) {
+      drawResizeHandles(element);
+    }
+  });
+  
+  // Draw selection rectangle if actively selecting
+  if (action === 'selecting') {
+    drawSelectionRectangle();
   }
   
   ctx.restore();
@@ -570,8 +804,32 @@ function render() {
   // Update element count
   const elementCountEl = document.getElementById('element-count');
   if (elementCountEl) {
-    elementCountEl.textContent = `${elements.length} elements`;
+    if (selectedElements.length > 1) {
+      elementCountEl.textContent = `${elements.length} elements (${selectedElements.length} selected)`;
+    } else {
+      elementCountEl.textContent = `${elements.length} elements`;
+    }
   }
+  
+  // Update grouping UI based on current selection
+  updateGroupingUIWithSelection(selectedElements);
+}
+
+function drawSelectionRectangle() {
+  const rectX = Math.min(startX, currentX);
+  const rectY = Math.min(startY, currentY);
+  const rectWidth = Math.abs(currentX - startX);
+  const rectHeight = Math.abs(currentY - startY);
+  
+  ctx.strokeStyle = '#5f72ff';
+  ctx.fillStyle = 'rgba(95, 114, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  
+  ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+  ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+  
+  ctx.setLineDash([]);
 }
 
 function drawGrid() {
@@ -629,6 +887,45 @@ export function setElements(newElements) {
   elements.forEach(element => {
     regenerateElementDrawable(element, roughGenerator);
   });
+  
+  // Process any existing connections for arrows/lines
+  elements.forEach(element => {
+    if ((element.type === 'arrow' || element.type === 'line') && 
+        (element.startBinding || element.endBinding)) {
+      
+      // Update start binding connection
+      if (element.startBinding) {
+        const targetElement = elements.find(el => el.id === element.startBinding.elementId);
+        if (targetElement) {
+          const connectionPoint = getConnectionPoint(targetElement, element.startBinding.focus);
+          element.x = connectionPoint.x;
+          element.y = connectionPoint.y;
+          
+          // Update first point
+          const endPoint = {
+            x: element.x + element.points[element.points.length - 1][0],
+            y: element.y + element.points[element.points.length - 1][1]
+          };
+          element.points[0] = [0, 0];
+          element.points[element.points.length - 1] = [endPoint.x - element.x, endPoint.y - element.y];
+        }
+      }
+      
+      // Update end binding connection
+      if (element.endBinding) {
+        const targetElement = elements.find(el => el.id === element.endBinding.elementId);
+        if (targetElement) {
+          const connectionPoint = getConnectionPoint(targetElement, element.endBinding.focus);
+          const lastIndex = element.points.length - 1;
+          element.points[lastIndex] = [connectionPoint.x - element.x, connectionPoint.y - element.y];
+        }
+      }
+      
+      // Regenerate drawable after connection updates
+      regenerateElementDrawable(element, roughGenerator);
+    }
+  });
+  
   needsStaticRedraw = true;
   render();
 }
@@ -679,4 +976,90 @@ export function setStrokeWidth(width) {
 
 export function getElements() {
   return elements;
+}
+
+export function groupSelectedElements() {
+  console.log('groupSelectedElements called with', selectedElements.length, 'elements');
+  
+  if (selectedElements.length < 2) {
+    console.log('Not enough elements to group');
+    return; // Need at least 2 elements to group
+  }
+  
+  const elementIds = selectedElements.map(el => el.id);
+  console.log('Element IDs to group:', elementIds);
+  
+  const groupId = createGroup(elementIds);
+  console.log('Created group:', groupId);
+  
+  // Add groupId to each selected element
+  selectedElements.forEach(element => {
+    element.groupId = groupId;
+    console.log('Added groupId', groupId, 'to element', element.id);
+  });
+  
+  needsStaticRedraw = true;
+  updateJsonEditor(elements);
+  render();
+  console.log('Grouping completed');
+}
+
+export function ungroupSelectedElements() {
+  console.log('ungroupSelectedElements called with', selectedElements.length, 'elements');
+  
+  if (selectedElements.length === 0) {
+    console.log('No elements selected');
+    return; // Need at least one element selected
+  }
+  
+  // Find the first grouped element to get the group ID
+  let groupId = null;
+  for (const element of selectedElements) {
+    if (element.groupId) {
+      groupId = element.groupId;
+      console.log('Found grouped element with groupId:', groupId);
+      break;
+    }
+  }
+  
+  if (!groupId) {
+    console.log('No grouped elements in selection');
+    return; // No grouped elements in selection
+  }
+  
+  const elementIds = ungroup(groupId);
+  console.log('Ungrouped elements:', elementIds);
+  
+  // Remove groupId from all elements in the group
+  elements.forEach(el => {
+    if (el.groupId === groupId) {
+      console.log('Removing groupId from element:', el.id);
+      delete el.groupId;
+    }
+  });
+  
+  needsStaticRedraw = true;
+  updateJsonEditor(elements);
+  render();
+  console.log('Ungrouping completed');
+}
+
+function selectGroup(elementId) {
+  const element = elements.find(el => el.id === elementId);
+  if (!element || !element.groupId) {
+    return false; // Not in a group
+  }
+  
+  // Select all elements in the group
+  const groupElements = elements.filter(el => el.groupId === element.groupId);
+  const groupIndices = groupElements.map(el => elements.indexOf(el));
+  
+  selectedElements = groupElements;
+  selectedElementIndices = groupIndices;
+  
+  // Clear single selection since we have multiple
+  selectedElement = null;
+  selectedElementIndex = -1;
+  
+  return true;
 }

@@ -209,7 +209,10 @@ export function createElement(id, x1, y1, x2, y2, type, options = {}, roughGener
         roughness: 1,
         opacity: 100,
         seed: Math.floor(Math.random() * 2000000000),
-        endArrowhead: 'arrow'
+        endArrowhead: 'arrow',
+        // Connection properties
+        startBinding: null, // { elementId, focus, gap }
+        endBinding: null    // { elementId, focus, gap }
       };
       break;
       
@@ -225,7 +228,10 @@ export function createElement(id, x1, y1, x2, y2, type, options = {}, roughGener
         strokeWidth,
         roughness: 1,
         opacity: 100,
-        seed: Math.floor(Math.random() * 2000000000)
+        seed: Math.floor(Math.random() * 2000000000),
+        // Connection properties
+        startBinding: null, // { elementId, focus, gap }
+        endBinding: null    // { elementId, focus, gap }
       };
       break;
       
@@ -595,10 +601,288 @@ export function drawElement(roughCanvas, context, element, isSelected = false, r
 }
 
 function getFontFamily(fontFamily) {
-  switch (fontFamily) {
-    case 1: return 'Arial, sans-serif';
-    case 2: return 'Courier New, monospace';
-    case 3: return 'Georgia, serif';
-    default: return 'Arial, sans-serif';
+  const fonts = {
+    1: 'Cascadia, Segoe UI',
+    2: 'Courier New, monospace',
+    3: 'Georgia, serif',
+    4: 'Arial, sans-serif'
+  };
+  return fonts[fontFamily] || fonts[1];
+}
+
+// Connection utility functions for smart arrows
+export function getConnectionPoint(element, focus) {
+  // focus is a point from 0-1 representing position on element perimeter
+  // For rectangles: 0=top-left corner, 0.25=top-right, 0.5=bottom-right, 0.75=bottom-left
+  const { x, y, width, height, type } = element;
+  
+  if (type === 'rectangle' || type === 'frame' || type === 'text' || type === 'image') {
+    const perimeter = 2 * (Math.abs(width) + Math.abs(height));
+    const distance = focus * perimeter;
+    
+    const w = Math.abs(width);
+    const h = Math.abs(height);
+    
+    // Determine which side of rectangle
+    if (distance <= w) {
+      // Top edge
+      return { x: x + distance, y: y };
+    } else if (distance <= w + h) {
+      // Right edge
+      return { x: x + width, y: y + (distance - w) };
+    } else if (distance <= 2 * w + h) {
+      // Bottom edge
+      return { x: x + width - (distance - w - h), y: y + height };
+    } else {
+      // Left edge
+      return { x: x, y: y + height - (distance - 2 * w - h) };
+    }
+  } else if (type === 'ellipse') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const angle = focus * 2 * Math.PI;
+    const radiusX = Math.abs(width) / 2;
+    const radiusY = Math.abs(height) / 2;
+    
+    return {
+      x: centerX + radiusX * Math.cos(angle),
+      y: centerY + radiusY * Math.sin(angle)
+    };
+  } else if (type === 'diamond') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const angle = focus * 2 * Math.PI;
+    
+    // Approximate diamond as rotated square
+    const size = Math.min(Math.abs(width), Math.abs(height)) / 2;
+    const cos45 = Math.cos(Math.PI / 4);
+    
+    return {
+      x: centerX + size * cos45 * Math.cos(angle),
+      y: centerY + size * cos45 * Math.sin(angle)
+    };
   }
+  
+  // Fallback to center
+  return { x: x + width / 2, y: y + height / 2 };
+}
+
+export function getNearestConnectionPoint(element, point) {
+  // Find the nearest connection point on an element's perimeter
+  const { x, y, width, height, type } = element;
+  
+  if (type === 'rectangle' || type === 'frame' || type === 'text' || type === 'image') {
+    // Find closest point on rectangle perimeter
+    const left = x;
+    const right = x + width;
+    const top = y;
+    const bottom = y + height;
+    
+    // Clamp point to rectangle bounds
+    const clampedX = Math.max(left, Math.min(right, point.x));
+    const clampedY = Math.max(top, Math.min(bottom, point.y));
+    
+    // Find which edge is closest
+    const distances = [
+      { edge: 'top', dist: Math.abs(point.y - top), x: clampedX, y: top },
+      { edge: 'bottom', dist: Math.abs(point.y - bottom), x: clampedX, y: bottom },
+      { edge: 'left', dist: Math.abs(point.x - left), x: left, y: clampedY },
+      { edge: 'right', dist: Math.abs(point.x - right), x: right, y: clampedY }
+    ];
+    
+    const nearest = distances.reduce((min, curr) => curr.dist < min.dist ? curr : min);
+    return { x: nearest.x, y: nearest.y };
+  } else if (type === 'ellipse') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const radiusX = Math.abs(width) / 2;
+    const radiusY = Math.abs(height) / 2;
+    
+    const angle = Math.atan2(point.y - centerY, point.x - centerX);
+    
+    return {
+      x: centerX + radiusX * Math.cos(angle),
+      y: centerY + radiusY * Math.sin(angle)
+    };
+  } else if (type === 'diamond') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    // Find intersection with diamond edges
+    const dx = point.x - centerX;
+    const dy = point.y - centerY;
+    const halfWidth = Math.abs(width) / 2;
+    const halfHeight = Math.abs(height) / 2;
+    
+    // Normalize to unit diamond, then scale back
+    const scale = Math.max(Math.abs(dx) / halfWidth + Math.abs(dy) / halfHeight, 0.001);
+    
+    return {
+      x: centerX + dx / scale,
+      y: centerY + dy / scale
+    };
+  }
+  
+  // Fallback to center
+  return { x: x + width / 2, y: y + height / 2 };
+}
+
+export function updateConnectedArrows(movedElement, allElements, roughGenerator) {
+  // Update all arrows connected to the moved element
+  let connectionsUpdated = 0;
+  allElements.forEach(element => {
+    if ((element.type === 'arrow' || element.type === 'line') && element !== movedElement) {
+      let updated = false;
+      
+      // Check start binding
+      if (element.startBinding && element.startBinding.elementId === movedElement.id) {
+        const connectionPoint = getConnectionPoint(movedElement, element.startBinding.focus);
+        
+        // Calculate the difference to maintain relative end point
+        const oldStartX = element.x;
+        const oldStartY = element.y;
+        const endPoint = {
+          x: element.x + element.points[element.points.length - 1][0],
+          y: element.y + element.points[element.points.length - 1][1]
+        };
+        
+        // Update start position
+        element.x = connectionPoint.x;
+        element.y = connectionPoint.y;
+        
+        // Update points to maintain relative positions
+        element.points[0] = [0, 0];
+        element.points[element.points.length - 1] = [endPoint.x - element.x, endPoint.y - element.y];
+        updated = true;
+      }
+      
+      // Check end binding
+      if (element.endBinding && element.endBinding.elementId === movedElement.id) {
+        const connectionPoint = getConnectionPoint(movedElement, element.endBinding.focus);
+        const lastIndex = element.points.length - 1;
+        element.points[lastIndex] = [connectionPoint.x - element.x, connectionPoint.y - element.y];
+        updated = true;
+      }
+      
+      if (updated) {
+        connectionsUpdated++;
+        // Regenerate the arrow's drawable with the correct roughGenerator
+        regenerateElementDrawable(element, roughGenerator);
+      }
+    }
+  });
+}
+
+export function findElementAt(point, elements) {
+  // Find the topmost element at a given point (with some tolerance for better UX)
+  const tolerance = 20; // pixels
+  
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const element = elements[i];
+    if (isPointInElementBounds(point, element, tolerance)) {
+      return element;
+    }
+  }
+  return null;
+}
+
+function isPointInElementBounds(point, element, tolerance = 0) {
+  const { x, y, width, height, type } = element;
+  
+  if (type === 'rectangle' || type === 'frame' || type === 'text' || type === 'image') {
+    return point.x >= x - tolerance && point.x <= x + width + tolerance && 
+           point.y >= y - tolerance && point.y <= y + height + tolerance;
+  } else if (type === 'ellipse') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const radiusX = Math.abs(width) / 2 + tolerance;
+    const radiusY = Math.abs(height) / 2 + tolerance;
+    
+    const dx = (point.x - centerX) / radiusX;
+    const dy = (point.y - centerY) / radiusY;
+    return dx * dx + dy * dy <= 1;
+  } else if (type === 'diamond') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const halfWidth = Math.abs(width) / 2 + tolerance;
+    const halfHeight = Math.abs(height) / 2 + tolerance;
+    
+    if (halfWidth === 0 || halfHeight === 0) return false;
+    
+    const dx = Math.abs(point.x - centerX) / halfWidth;
+    const dy = Math.abs(point.y - centerY) / halfHeight;
+    return dx + dy <= 1;
+  }
+  
+  return false;
+}
+
+// Group management
+let nextGroupId = 1;
+const groups = new Map(); // groupId -> { id, elementIds: Set() }
+
+export function createGroup(elementIds) {
+  const groupId = `group_${nextGroupId++}`;
+  const group = {
+    id: groupId,
+    elementIds: new Set(elementIds)
+  };
+  
+  groups.set(groupId, group);
+  
+  // Add groupId to each element
+  elementIds.forEach(elementId => {
+    // We'll need to find the element and add groupId to it
+    // This will be handled by the caller
+  });
+  
+  return groupId;
+}
+
+export function ungroup(groupId) {
+  if (groups.has(groupId)) {
+    const group = groups.get(groupId);
+    groups.delete(groupId);
+    return Array.from(group.elementIds);
+  }
+  return [];
+}
+
+export function getElementGroup(elementId) {
+  for (const [groupId, group] of groups) {
+    if (group.elementIds.has(elementId)) {
+      return groupId;
+    }
+  }
+  return null;
+}
+
+export function getGroupElements(groupId) {
+  const group = groups.get(groupId);
+  return group ? Array.from(group.elementIds) : [];
+}
+
+export function isInGroup(elementId) {
+  return getElementGroup(elementId) !== null;
+}
+
+export function addElementToGroup(elementId, groupId) {
+  const group = groups.get(groupId);
+  if (group) {
+    group.elementIds.add(elementId);
+  }
+}
+
+export function removeElementFromGroup(elementId) {
+  for (const [groupId, group] of groups) {
+    if (group.elementIds.has(elementId)) {
+      group.elementIds.delete(elementId);
+      // If group becomes empty, remove it
+      if (group.elementIds.size === 0) {
+        groups.delete(groupId);
+      }
+      return groupId;
+    }
+  }
+  return null;
 }

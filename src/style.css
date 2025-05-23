@@ -531,7 +531,7 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background-color: var(--color-background); /* Ensure canvas container has a bg */
+  background-color: #ffffff; /* Clean white background like Excalidraw */
 }
 
 canvas {
@@ -539,87 +539,122 @@ canvas {
   width: 100%;
   height: 100%;
   cursor: default;
+  background-color: #ffffff; /* Ensure canvas itself has white background */
 }
 
-/* Toolbar Redesign - Simplified main toolbar */
+/* Toolbar Redesign - Floating centered toolbar like Excalidraw */
 .toolbar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  padding: var(--padding-xs) var(--padding-sm);
-  background-color: var(--color-panel-background);
-  border-bottom: 1px solid var(--color-border);
-  gap: var(--padding-xs);
-  position: sticky;
-  top: 0;
-  z-index: 100; 
-  box-shadow: var(--shadow-sm);
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border: 1px solid #e3e3e3;
+  border-radius: 12px;
+  gap: 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  user-select: none;
 }
 
 .main-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--padding-sm);
+  gap: 4px;
   width: 100%;
 }
 
 .tool-group {
   display: flex;
   align-items: center;
-  gap: var(--padding-xs);
-  padding: var(--padding-xs);
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-background);
-  box-shadow: var(--shadow-sm);
+  gap: 2px;
+  padding: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .tool-separator {
   width: 1px;
-  height: 24px;
-  background-color: var(--color-border);
-  margin: 0 var(--padding-xs);
+  height: 28px;
+  background-color: #e3e3e3;
+  margin: 0 8px;
 }
+
 .tool-separator-large {
   width: 1px;
-  height: 24px;
-  background-color: var(--color-border);
-  margin: 0 var(--padding-md);
+  height: 28px;
+  background-color: #e3e3e3;
+  margin: 0 12px;
 }
 
 .tool-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px; 
-  height: 32px;
-  border: 1px solid transparent;
+  width: 40px;
+  height: 40px;
+  border: none;
   background-color: transparent;
-  border-radius: var(--border-radius-sm);
+  border-radius: 8px;
   cursor: pointer;
-  color: var(--color-icon);
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  color: #1e1e1e;
+  transition: all 0.15s ease;
+  position: relative;
+  font-size: 0;
 }
 
 .tool-btn:hover {
-  background-color: var(--color-button-hover-bg);
-  color: var(--color-text-primary);
+  background-color: #f5f5f5;
+  color: #1e1e1e;
 }
 
 .tool-btn.active {
-  background-color: var(--color-accent);
+  background-color: #5f72ff;
   color: white;
-  border-color: var(--color-accent);
 }
 
 .tool-btn svg {
   width: 20px;
   height: 20px;
-  stroke-width: 2;
+  stroke-width: 1.5;
   fill: none;
   stroke: currentColor;
 }
 
 .tool-btn.active svg {
   stroke: white;
+}
+
+/* Keyboard shortcut indicators */
+.tool-btn::after {
+  content: attr(data-shortcut);
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #666;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 1px 3px;
+  border-radius: 2px;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.tool-btn.active::after {
+  color: #5f72ff;
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.tool-btn:hover::after {
+  opacity: 1;
 }
 
 /* Properties Panel - Floating */
@@ -629,12 +664,14 @@ canvas {
   left: 20px;
   width: 280px;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e3e3e3;
   display: none;
-  z-index: 1000;
+  z-index: 999;
   font-family: var(--font-family);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .properties-panel.visible {
@@ -917,6 +954,43 @@ canvas {
 .layers-group svg {
   width: 16px;
   height: 16px;
+}
+
+/* Grouping controls */
+.grouping-group {
+  gap: 2px;
+}
+
+.grouping-group .property-btn {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+}
+
+.grouping-group svg {
+  width: 16px;
+  height: 16px;
+}
+
+#grouping-section {
+  display: none; /* Hidden by default, shown when multiple items selected */
+}
+
+#grouping-section.visible {
+  display: block;
+}
+
+.grouping-group .property-btn:disabled,
+.grouping-group .property-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
+.grouping-group .property-btn:disabled:hover,
+.grouping-group .property-btn.disabled:hover {
+  background-color: #f5f5f5;
+  border-color: var(--color-border);
 }
 
 /* Hide original styles we're replacing */

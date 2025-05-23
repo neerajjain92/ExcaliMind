@@ -167,9 +167,9 @@ export function setupJsonEditor() {
 
 function loadSampleData() {
   const jsonEditor = document.getElementById('json-editor');
-  jsonEditor.value = JSON.stringify(sampleExcalidrawData, null, 2);
+  jsonEditor.value = JSON.stringify(createSampleData(), null, 2);
   renderFromJson();
-  showUrlStatus('Sample data loaded successfully!', 'success');
+  showUrlStatus('Connected shapes demo loaded! Try dragging the shapes to see arrows move.', 'success');
 }
 
 function renderFromJson() {
@@ -381,4 +381,146 @@ function showUrlStatus(message, type = '') {
       statusEl.className = 'url-status';
     }, 5000);
   }
+}
+
+function createSampleData() {
+  return {
+    "type": "excalidraw",
+    "version": 2,
+    "source": "https://excalidraw.com",
+    "elements": [
+      {
+        "id": "box1",
+        "type": "rectangle",
+        "x": 100,
+        "y": 100,
+        "width": 120,
+        "height": 80,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "#e1f5fe",
+        "strokeWidth": 2,
+        "roughness": 1,
+        "fillStyle": "solid",
+        "opacity": 100,
+        "seed": 123456
+      },
+      {
+        "id": "box2", 
+        "type": "rectangle",
+        "x": 350,
+        "y": 200,
+        "width": 120,
+        "height": 80,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "#f3e5f5",
+        "strokeWidth": 2,
+        "roughness": 1,
+        "fillStyle": "solid",
+        "opacity": 100,
+        "seed": 789012
+      },
+      {
+        "id": "circle1",
+        "type": "ellipse", 
+        "x": 200,
+        "y": 320,
+        "width": 100,
+        "height": 100,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "#e8f5e8",
+        "strokeWidth": 2,
+        "roughness": 1,
+        "fillStyle": "solid",
+        "opacity": 100,
+        "seed": 345678
+      },
+      {
+        "id": "arrow1",
+        "type": "arrow",
+        "x": 220,
+        "y": 140,
+        "points": [[0, 0], [130, 60]],
+        "strokeColor": "#1971c2",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "roughness": 1,
+        "opacity": 100,
+        "seed": 901234,
+        "endArrowhead": "arrow",
+        "startBinding": {
+          "elementId": "box1",
+          "focus": 0.5,
+          "gap": 8
+        },
+        "endBinding": {
+          "elementId": "box2", 
+          "focus": 0.25,
+          "gap": 8
+        }
+      },
+      {
+        "id": "arrow2",
+        "type": "arrow",
+        "x": 410,
+        "y": 280,
+        "points": [[0, 0], [-160, 40]],
+        "strokeColor": "#e03131",
+        "backgroundColor": "transparent", 
+        "strokeWidth": 2,
+        "roughness": 1,
+        "opacity": 100,
+        "seed": 567890,
+        "endArrowhead": "arrow",
+        "startBinding": {
+          "elementId": "box2",
+          "focus": 0.75,
+          "gap": 8
+        },
+        "endBinding": {
+          "elementId": "circle1",
+          "focus": 0.1,
+          "gap": 8
+        }
+      },
+      {
+        "id": "text1",
+        "type": "text",
+        "x": 110,
+        "y": 120,
+        "width": 100,
+        "height": 24,
+        "text": "Connected\nShapes Demo",
+        "fontSize": 16,
+        "fontFamily": 1,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "opacity": 100,
+        "seed": 111111
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "x": 360,
+        "y": 220,
+        "width": 100,
+        "height": 24,
+        "text": "Drag me to see\narrow connections!",
+        "fontSize": 14,
+        "fontFamily": 1,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "opacity": 100,
+        "seed": 222222
+      }
+    ],
+    "appState": {
+      "gridSize": null,
+      "viewBackgroundColor": "#ffffff"
+    },
+    "files": {}
+  };
 }

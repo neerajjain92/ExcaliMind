@@ -1,4 +1,4 @@
-import { setTool, setStrokeColor, setFillColor, setStrokeWidth } from './canvas.js';
+import { setTool, setStrokeColor, setFillColor, setStrokeWidth, groupSelectedElements, ungroupSelectedElements } from './canvas.js';
 
 // Export selectTool as a standalone function
 export function selectTool(tool) {
@@ -113,37 +113,44 @@ export function setupToolbar() {
     <!-- Main Toolbar -->
     <div class="main-toolbar">
       <div class="tool-group">
-        <button class="tool-btn active" data-tool="selection" title="Selection (1)">
+        <button class="tool-btn active" data-tool="selection" data-shortcut="1" title="Selection (1)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path></svg>
         </button>
-        <button class="tool-btn" data-tool="hand" title="Hand (2)">
+        <button class="tool-btn" data-tool="hand" data-shortcut="2" title="Hand (2)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>
         </button>
+      </div>
         
-        <div class="tool-separator"></div>
-        
-        <button class="tool-btn" data-tool="rectangle" title="Rectangle (3)">
+      <div class="tool-separator"></div>
+      
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="rectangle" data-shortcut="3" title="Rectangle (3)">
           <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="0" ry="0"></rect></svg>
         </button>
-        <button class="tool-btn" data-tool="diamond" title="Diamond (4)">
+        <button class="tool-btn" data-tool="diamond" data-shortcut="4" title="Diamond (4)">
           <svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12 2 22 12 12 22 2 12 12 2"></polygon></svg>
         </button>
-        <button class="tool-btn" data-tool="ellipse" title="Ellipse (5)">
+        <button class="tool-btn" data-tool="ellipse" data-shortcut="5" title="Ellipse (5)">
           <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>
         </button>
-        <button class="tool-btn" data-tool="arrow" title="Arrow (6)">
+        <button class="tool-btn" data-tool="arrow" data-shortcut="6" title="Arrow (6)">
           <svg width="20" height="20" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </button>
-        <button class="tool-btn" data-tool="line" title="Line (7)">
+        <button class="tool-btn" data-tool="line" data-shortcut="7" title="Line (7)">
           <svg width="20" height="20" viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"></line></svg>
         </button>
-        <button class="tool-btn" data-tool="freedraw" title="Draw (8)">
+      </div>
+
+      <div class="tool-separator"></div>
+      
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="freedraw" data-shortcut="8" title="Draw (8)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
         </button>
-        <button class="tool-btn" data-tool="text" title="Text (9)">
+        <button class="tool-btn" data-tool="text" data-shortcut="9" title="Text (9)">
           <svg width="20" height="20" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
         </button>
-        <button class="tool-btn" data-tool="image" title="Insert Image (0)">
+        <button class="tool-btn" data-tool="image" data-shortcut="0" title="Insert Image (0)">
            <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
         </button>
         <button class="tool-btn" data-tool="eraser" title="Eraser">
@@ -288,6 +295,32 @@ export function setupToolbar() {
             </button>
           </div>
         </div>
+
+        <!-- Grouping Section -->
+        <div class="property-section" id="grouping-section">
+          <label class="property-label">Grouping</label>
+          <div class="button-group grouping-group">
+            <button class="property-btn" id="group-btn" title="Group selected elements">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <rect x="2" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="14" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="2" y="14" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="14" y="14" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="1" y="1" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+              </svg>
+            </button>
+            <button class="property-btn" id="ungroup-btn" title="Ungroup selected elements">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>
+                <line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -392,5 +425,73 @@ export function setupToolbar() {
       console.log('Layer action:', button.dataset.layer);
     });
   });
+
+  // Grouping controls event listeners
+  const groupBtn = document.getElementById('group-btn');
+  const ungroupBtn = document.getElementById('ungroup-btn');
+  
+  groupBtn.addEventListener('click', () => {
+    console.log('Group button clicked');
+    groupSelectedElements();
+    updateGroupingUI();
+  });
+  
+  ungroupBtn.addEventListener('click', () => {
+    console.log('Ungroup button clicked');
+    ungroupSelectedElements();
+    updateGroupingUI();
+  });
+}
+
+// Function to update grouping UI based on selection
+export function updateGroupingUI() {
+  const groupingSection = document.getElementById('grouping-section');
+  const groupBtn = document.getElementById('group-btn');
+  const ungroupBtn = document.getElementById('ungroup-btn');
+  
+  if (!groupingSection || !groupBtn || !ungroupBtn) return;
+  
+  // Get selection info from canvas (we'll need to pass this as parameters)
+  // For now, we'll check if the properties panel is visible and has multiple items
+  const propertiesPanel = document.getElementById('properties-panel');
+  if (!propertiesPanel || !propertiesPanel.classList.contains('visible')) {
+    groupingSection.classList.remove('visible');
+    return;
+  }
+  
+  // We'll need to get selection info from canvas.js
+  // For now, show grouping section when properties panel is open
+  groupingSection.classList.add('visible');
+}
+
+// Updated function that takes selection info as parameters
+export function updateGroupingUIWithSelection(selectedElements) {
+  const groupingSection = document.getElementById('grouping-section');
+  const groupBtn = document.getElementById('group-btn');
+  const ungroupBtn = document.getElementById('ungroup-btn');
+  
+  if (!groupingSection || !groupBtn || !ungroupBtn) return;
+  
+  if (selectedElements.length < 2) {
+    // Hide grouping section if less than 2 elements selected
+    groupingSection.classList.remove('visible');
+    return;
+  }
+  
+  // Show grouping section for multiple selections
+  groupingSection.classList.add('visible');
+  
+  // Enable/disable buttons based on selection state
+  const hasGroupedElement = selectedElements.some(el => el.groupId);
+  const allInSameGroup = selectedElements.length > 1 && 
+                        selectedElements.every(el => el.groupId && el.groupId === selectedElements[0].groupId);
+  
+  // Enable group button if multiple elements selected and not all in same group
+  groupBtn.disabled = selectedElements.length < 2 || allInSameGroup;
+  groupBtn.classList.toggle('disabled', groupBtn.disabled);
+  
+  // Enable ungroup button if selection contains grouped elements
+  ungroupBtn.disabled = !hasGroupedElement;
+  ungroupBtn.classList.toggle('disabled', ungroupBtn.disabled);
 }
 

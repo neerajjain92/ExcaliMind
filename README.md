@@ -6,11 +6,14 @@
 
 ## ✨ Features
 
-🎨 **Full Excalidraw Editor** - Complete drawing tools with professional UI  
+🎨 **Excalidraw-Style Interface** - Beautiful floating toolbar with clean, white canvas background  
 📝 **Live JSON Editing** - Real-time sync between canvas and JSON  
 🔗 **GitHub Integration** - Load diagrams directly from GitHub URLs  
 🤖 **ExcaliMind AI Assistant (Claude 3.5 Sonnet)** - Intelligent diagram modification and creation  
-⚡ **High Performance** - Optimized rendering with caching  
+🔄 **Smart Connected Arrows** - Arrows automatically connect to shapes and move with them  
+⌨️ **Keyboard Shortcuts** - Quick tool selection with number keys (1-9, 0) - visible on toolbar  
+👥 **Multi-Selection & Grouping** - Select multiple elements and group them for collective operations  
+⚡ **Silky Smooth Performance** - Excalidraw-level smooth dragging and interactions  
 🎛️ **Properties Panel** - Comprehensive shape customization  
 📱 **Responsive Design** - Works beautifully on all screen sizes  
 ☁️ **Production Ready** - Deployed on Netlify with serverless functions  
@@ -122,6 +125,38 @@ The app works seamlessly in both development and production environments.
 - **Draw (8)** - Freehand drawing
 - **Text (9)** - Add text elements
 - **Image (0)** - Insert image placeholders
+
+### 🔄 Smart Connected Arrows
+ExcaliMind features intelligent arrow connections that make diagramming effortless:
+
+- **Auto-Connect**: Draw arrows near shapes to automatically connect them
+- **Move Together**: When you drag connected shapes, arrows move with them
+- **Smart Snapping**: Arrows snap to the nearest connection point on shapes
+- **Visual Feedback**: Connected arrows maintain perfect alignment
+
+**How to use:**
+1. Select the Arrow tool (6)
+2. Start drawing near a shape - the arrow will snap to connect
+3. End near another shape to create a connection
+4. Now drag either shape and watch the arrow follow!
+
+### 👥 Multi-Selection & Grouping
+ExcaliMind supports advanced selection and grouping capabilities for efficient diagram management:
+
+**Multi-Selection:**
+- **Shift+Click**: Add or remove individual elements from selection
+- **Rectangle Selection**: Drag to select multiple elements at once
+- **Visual Feedback**: Selected elements highlighted with blue outline
+
+**Grouping Operations:**
+- **Group Elements**: Select multiple items → Open Properties panel → Click Group button
+- **Ungroup Elements**: Select a grouped element → Click Ungroup button
+- **Group Movement**: Move any element in a group to move the entire group
+- **Group Selection**: Click any grouped element to select the entire group
+
+**Keyboard Shortcuts:**
+- **Shift+G**: Group selected elements (coming soon)
+- **Shift+U**: Ungroup selected elements (coming soon)
 
 ### Claude AI Commands
 - **"Add a title saying 'System Architecture'"** - Adds text elements
@@ -246,6 +281,11 @@ Perfect for architects, developers, designers, and anyone who wants to create be
 
 ## 🌟 Recent Updates
 
+- ✅ **Multi-Selection & Grouping** - Select multiple elements, group them, and move groups together
+- ✅ **Smooth Dragging Performance** - Excalidraw-level smooth drag interactions with optimized rendering
+- ✅ **Excalidraw-Style UI** - Beautiful floating toolbar and clean white canvas background
+- ✅ **Smart Connected Arrows** - Arrows automatically connect to shapes and move with them
+- ✅ **Enhanced Keyboard Shortcuts** - Number keys (1-9, 0) with visual indicators on toolbar
 - ✅ **Claude 3.5 Sonnet Integration** - Latest AI model with enhanced capabilities
 - ✅ **Netlify Deployment** - Production-ready hosting with serverless functions  
 - ✅ **Environment Awareness** - Seamless dev/production switching
