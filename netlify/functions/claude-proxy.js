@@ -5,6 +5,12 @@ const fetch = require('node-fetch'); // Using node-fetch
 
 const app = express();
 
+// Add this logging middleware
+app.use((req, res, next) => {
+  console.log(`Netlify Function Info: Received request - Method: ${req.method}, Path: ${req.path}, OriginalURL: ${req.originalUrl}`);
+  next();
+});
+
 // CORS Configuration: In production, restrict this to your Netlify frontend URL
 // For now, keeping it open for easier initial deployment, but you SHOULD restrict this.
 // Example: const allowedOrigins = ['YOUR_NETLIFY_APP_URL.netlify.app'];
@@ -15,6 +21,7 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // Health check endpoint - useful for debugging the function
 app.get('/health', (req, res) => {
+  console.log('Netlify Function Info: /health route hit'); // Add this log
   res.json({ 
     status: 'OK', 
     message: 'Claude API Proxy Netlify Function is running',
@@ -27,6 +34,7 @@ app.get('/health', (req, res) => {
 // With the netlify.toml rewrite from /api/* to /.netlify/functions/claude-proxy/:splat
 // a request to /api/claude/chat on your site will be routed to /claude/chat here.
 app.post('/claude/chat', async (req, res) => {
+  console.log('Netlify Function Info: /claude/chat route hit'); // Add this log
   try {
     console.log('Netlify Function: Received request to /claude/chat');
     
