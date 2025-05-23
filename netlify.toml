@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions" # Specifies the directory for Netlify Functions
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/claude-proxy/:splat"
+  status = 200 # Rewrite rule (acts like a proxy) 
