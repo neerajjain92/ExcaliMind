@@ -83,9 +83,8 @@ document.querySelector('#app').innerHTML = `
         <div class="chat-message system">
           Welcome! I'm Claude AI and I can help modify your Excalidraw diagrams.<br><br>
           🚀 <strong>Quick Setup:</strong><br>
-          1. Start the backend server: <code>cd backend && npm install && npm start</code><br>
-          2. Enter your Claude API key above<br>
-          3. Start chatting!<br><br>
+          1. Enter your Claude API key above<br>
+          2. Start chatting!<br><br>
           💡 Or try the demo mode to see how it works!<br><br>
           I can add shapes, change colors, reorganize layouts, and more. Just describe what you want!
         </div>

@@ -6,6 +6,11 @@ let apiKey = '';
 let isConnected = false;
 let chatHistory = [];
 
+// Environment-aware API base URL
+const CLAUDE_API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001/api' 
+  : '/api'; // For production (Netlify), use relative path
+
 export function setupChat() {
   const apiKeyInput = document.getElementById('claude-api-key');
   const chatInput = document.getElementById('chat-input');
@@ -121,8 +126,8 @@ User capabilities in this editor:
 
 Be helpful, concise, and always provide working JSON when making changes.`;
 
-      // Send to Claude API via local backend server
-      const response = await fetch('http://localhost:3001/api/claude/chat', {
+      // Send to Claude API via backend server
+      const response = await fetch(`${CLAUDE_API_BASE_URL}/claude/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -197,14 +202,24 @@ Be helpful, concise, and always provide working JSON when making changes.`;
       let errorMessage = '';
       
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage = `🔒 <strong>Backend Server Not Running</strong><br><br>
-        The backend server is not accessible. Please:<br><br>
-        <strong>1. Start the backend server:</strong><br>
-        • Open a new terminal<br>
-        • Run: <code>cd backend && npm install && npm start</code><br>
-        • Server should start on http://localhost:3001<br><br>
-        <strong>2. Or try demo mode:</strong><br>
-        <button onclick="window.chatDemo && window.chatDemo()" style="background: #007aff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Try Demo Mode</button>`;
+        if (import.meta.env.DEV) {
+          errorMessage = `🔒 <strong>Backend Server Not Running</strong><br><br>
+          The backend server is not accessible. Please:<br><br>
+          <strong>1. Start the backend server:</strong><br>
+          • Open a new terminal<br>
+          • Run: <code>cd backend && npm install && npm start</code><br>
+          • Server should start on http://localhost:3001<br><br>
+          <strong>2. Or try demo mode:</strong><br>
+          <button onclick="window.chatDemo && window.chatDemo()" style="background: #007aff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Try Demo Mode</button>`;
+        } else {
+          errorMessage = `🔒 <strong>API Server Error</strong><br><br>
+          Unable to connect to the AI service. This could be a temporary issue.<br><br>
+          <strong>Try:</strong><br>
+          • Refresh the page and try again<br>
+          • Check your internet connection<br>
+          • Or try demo mode:<br>
+          <button onclick="window.chatDemo && window.chatDemo()" style="background: #007aff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Try Demo Mode</button>`;
+        }
       } else if (error.message.includes('401')) {
         errorMessage = '🔑 Invalid API key. Please check your Claude API key.';
         updateConnectionStatus(false);
