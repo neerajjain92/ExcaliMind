@@ -20,8 +20,8 @@ app.use(express.json({ limit: '10mb' }));
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // Health check endpoint - useful for debugging the function
-app.get('/health', (req, res) => {
-  console.log('Netlify Function Info: /health route hit'); // Add this log
+app.get('/api/health', (req, res) => {
+  console.log('Netlify Function Info: /api/health route hit'); // Update this log
   res.json({ 
     status: 'OK', 
     message: 'Claude API Proxy Netlify Function is running',
@@ -32,11 +32,11 @@ app.get('/health', (req, res) => {
 // Claude API proxy endpoint
 // The path here will be relative to the function's endpoint.
 // With the netlify.toml rewrite from /api/* to /.netlify/functions/claude-proxy/:splat
-// a request to /api/claude/chat on your site will be routed to /claude/chat here.
-app.post('/claude/chat', async (req, res) => {
-  console.log('Netlify Function Info: /claude/chat route hit'); // Add this log
+// a request to /api/claude/chat on your site will be routed to /api/claude/chat here.
+app.post('/api/claude/chat', async (req, res) => {
+  console.log('Netlify Function Info: /api/claude/chat route hit'); // Update this log
   try {
-    console.log('Netlify Function: Received request to /claude/chat');
+    console.log('Netlify Function: Received request to /api/claude/chat'); // Update this log
     
     const apiKey = process.env.CLAUDE_API_KEY; // API key from Netlify environment variable
     
