@@ -31,7 +31,7 @@ app.post('/api/claude/chat', async (req, res) => {
       });
     }
 
-    const { messages, system, model = 'claude-3-sonnet-20240229', max_tokens = 4000 } = req.body;
+    const { messages, system, model = 'claude-3-5-sonnet-20241022', max_tokens = 4000 } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ 
