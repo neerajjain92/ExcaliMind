@@ -112,16 +112,16 @@ The app works seamlessly in both development and production environments.
 ## 💡 Usage Examples
 
 ### Drawing Tools
-- **Selection Tool (V)** - Select and manipulate shapes
-- **Hand Tool (H)** - Pan around the canvas
-- **Rectangle (R)** - Draw rectangles and squares
-- **Diamond (D)** - Draw diamond shapes
-- **Ellipse (E)** - Draw circles and ellipses
-- **Arrow (A)** - Draw arrows between elements
-- **Line (L)** - Draw straight lines
-- **Draw (P)** - Freehand drawing
-- **Text (T)** - Add text elements
-- **Image (I)** - Insert image placeholders
+- **Selection Tool (1)** - Select and manipulate shapes
+- **Hand Tool (2)** - Pan around the canvas
+- **Rectangle (3)** - Draw rectangles and squares
+- **Diamond (4)** - Draw diamond shapes
+- **Ellipse (5)** - Draw circles and ellipses
+- **Arrow (6)** - Draw arrows between elements
+- **Line (7)** - Draw straight lines
+- **Draw (8)** - Freehand drawing
+- **Text (9)** - Add text elements
+- **Image (0)** - Insert image placeholders
 
 ### Claude AI Commands
 - **"Add a title saying 'System Architecture'"** - Adds text elements

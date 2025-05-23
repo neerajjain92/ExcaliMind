@@ -41,44 +41,44 @@ export function setupKeyboardShortcuts() {
       return;
     }
     
-    switch (e.key.toLowerCase()) {
-      case 'v':
+    switch (e.key) {
+      case '1':
         e.preventDefault();
         selectTool('selection');
         break;
-      case 'h':
+      case '2':
         e.preventDefault();
         selectTool('hand');
         break;
-      case 'r':
+      case '3':
         e.preventDefault();
         selectTool('rectangle');
         break;
-      case 'd':
+      case '4':
         e.preventDefault();
         selectTool('diamond');
         break;
-      case 'e':
+      case '5':
         e.preventDefault();
         selectTool('ellipse');
         break;
-      case 'a':
+      case '6':
         e.preventDefault();
         selectTool('arrow');
         break;
-      case 'l':
+      case '7':
         e.preventDefault();
         selectTool('line');
         break;
-      case 'p':
+      case '8':
         e.preventDefault();
         selectTool('freedraw');
         break;
-      case 't':
+      case '9':
         e.preventDefault();
         selectTool('text');
         break;
-      case 'i':
+      case '0':
         e.preventDefault();
         selectTool('image');
         break;
@@ -113,37 +113,37 @@ export function setupToolbar() {
     <!-- Main Toolbar -->
     <div class="main-toolbar">
       <div class="tool-group">
-        <button class="tool-btn active" data-tool="selection" title="Selection (V)">
+        <button class="tool-btn active" data-tool="selection" title="Selection (1)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path></svg>
         </button>
-        <button class="tool-btn" data-tool="hand" title="Hand (H)">
+        <button class="tool-btn" data-tool="hand" title="Hand (2)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>
         </button>
         
         <div class="tool-separator"></div>
         
-        <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+        <button class="tool-btn" data-tool="rectangle" title="Rectangle (3)">
           <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="0" ry="0"></rect></svg>
         </button>
-        <button class="tool-btn" data-tool="diamond" title="Diamond (D)">
+        <button class="tool-btn" data-tool="diamond" title="Diamond (4)">
           <svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12 2 22 12 12 22 2 12 12 2"></polygon></svg>
         </button>
-        <button class="tool-btn" data-tool="ellipse" title="Ellipse (E)">
+        <button class="tool-btn" data-tool="ellipse" title="Ellipse (5)">
           <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>
         </button>
-        <button class="tool-btn" data-tool="arrow" title="Arrow (A)">
+        <button class="tool-btn" data-tool="arrow" title="Arrow (6)">
           <svg width="20" height="20" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </button>
-        <button class="tool-btn" data-tool="line" title="Line (L)">
+        <button class="tool-btn" data-tool="line" title="Line (7)">
           <svg width="20" height="20" viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"></line></svg>
         </button>
-        <button class="tool-btn" data-tool="freedraw" title="Draw (P)">
+        <button class="tool-btn" data-tool="freedraw" title="Draw (8)">
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
         </button>
-        <button class="tool-btn" data-tool="text" title="Text (T)">
+        <button class="tool-btn" data-tool="text" title="Text (9)">
           <svg width="20" height="20" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
         </button>
-        <button class="tool-btn" data-tool="image" title="Insert Image (I)">
+        <button class="tool-btn" data-tool="image" title="Insert Image (0)">
            <svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
         </button>
         <button class="tool-btn" data-tool="eraser" title="Eraser">
